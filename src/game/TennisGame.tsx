@@ -313,7 +313,7 @@ export default function TennisGame() {
       {/* Keyboard hints */}
       <div className="absolute bottom-4 left-4 bg-card/80 backdrop-blur-sm border border-border rounded-lg px-4 py-2 pointer-events-none hidden md:block">
         <div className="text-xs text-muted-foreground">
-          <span className="font-bold text-foreground">A/D</span> or <span className="font-bold text-foreground">←/→</span> Move
+          <span className="font-bold text-foreground">WASD</span> or <span className="font-bold text-foreground">Arrows</span> Move
           <span className="mx-2">•</span>
           <span className="font-bold text-foreground">Space</span> Swing / Serve
         </div>
