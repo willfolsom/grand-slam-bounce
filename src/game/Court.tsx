@@ -46,11 +46,11 @@ export function Court({ theme }: CourtProps) {
       {/* Service line far side */}
       <Line from={[-halfW + 1.37, 0.01, -halfL + serviceBoxDepth]} to={[halfW - 1.37, 0.01, -halfL + serviceBoxDepth]} color={theme.lineColor} />
 
-      {/* Center service lines */}
-      <Line from={[0, 0.01, halfL - serviceBoxDepth]} to={[0, 0.01, halfL]} color={theme.lineColor} />
-      <Line from={[0, 0.01, -halfL + serviceBoxDepth]} to={[0, 0.01, -halfL]} color={theme.lineColor} />
+      {/* Center service lines (net to service line) */}
+      <Line from={[0, 0.01, 0]} to={[0, 0.01, halfL - serviceBoxDepth]} color={theme.lineColor} />
+      <Line from={[0, 0.01, 0]} to={[0, 0.01, -halfL + serviceBoxDepth]} color={theme.lineColor} />
 
-      {/* Center marks */}
+      {/* Center marks on baselines */}
       <Line from={[0, 0.01, halfL]} to={[0, 0.01, halfL - 0.3]} color={theme.lineColor} />
       <Line from={[0, 0.01, -halfL]} to={[0, 0.01, -halfL + 0.3]} color={theme.lineColor} />
 
