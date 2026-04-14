@@ -47,6 +47,8 @@ export interface GameState {
   playerX: number;
   playerZ: number;
   isSwinging: boolean;
+  hitType: 'fast' | 'slow';
+  playerVelX: number;
   gameStarted: boolean;
   pointOver: boolean;
   message: string;
