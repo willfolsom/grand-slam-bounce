@@ -243,12 +243,16 @@ export default function TennisGame() {
       if (keysRef.current.has('d') || keysRef.current.has('arrowright')) dx += speed * dt;
       if (keysRef.current.has('w') || keysRef.current.has('arrowup')) dz -= speed * dt;
       if (keysRef.current.has('s') || keysRef.current.has('arrowdown')) dz += speed * dt;
-      setGameState(prev => ({
-        ...prev,
-        playerX: Math.max(-HALF_W + 1, Math.min(HALF_W - 1, prev.playerX + dx)),
-        playerZ: Math.max(2, Math.min(HALF_L - 0.5, (prev.playerZ ?? PLAYER_Z) + dz)),
-        playerVelX: dx / Math.max(dt, 0.001),
-      }));
+      if (dx !== 0 || dz !== 0) {
+        setGameState(prev => ({
+          ...prev,
+          playerX: Math.max(-HALF_W + 1, Math.min(HALF_W - 1, prev.playerX + dx)),
+          playerZ: Math.max(2, Math.min(HALF_L - 0.5, (prev.playerZ ?? PLAYER_Z) + dz)),
+          playerVelX: dx / Math.max(dt, 0.001),
+        }));
+      } else {
+        setGameState(prev => prev.playerVelX !== 0 ? { ...prev, playerVelX: 0 } : prev);
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
