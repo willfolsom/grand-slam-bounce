@@ -38,6 +38,7 @@ function GameScene({
     const pos = [...ballState.position] as [number, number, number];
     const vel = [...ballState.velocity] as [number, number, number];
     let hasBounced = ballState.hasBounced;
+    let bounceCount = ballState.bounceCount;
     let lastHitBy = ballState.lastHitBy;
 
     vel[1] += GRAVITY * dt;
@@ -54,12 +55,15 @@ function GameScene({
           endPoint(lastHitBy === 'player' ? 'ai' : 'player', 'Out!');
           return;
         }
+        bounceCount++;
+        if (bounceCount >= 2) {
+          // Double bounce — whoever's side it's on loses
+          if (pos[2] > 0) endPoint('ai', 'Double bounce!');
+          else endPoint('player', 'Double bounce!');
+          return;
+        }
         hasBounced = true;
         vel[1] = Math.abs(vel[1]) * 0.6;
-      } else if (hasBounced && Math.abs(vel[1]) < 2 && Math.abs(vel[0]) < 1 && Math.abs(vel[2]) < 1) {
-        if (pos[2] > 0) endPoint('ai', 'Double bounce!');
-        else endPoint('player', 'Double bounce!');
-        return;
       }
     }
 
@@ -95,6 +99,7 @@ function GameScene({
       vel[2] = BALL_SPEED * (0.7 + Math.random() * 0.3);
       lastHitBy = 'ai';
       hasBounced = false;
+      bounceCount = 0;
       setTimeout(() => { aiSwinging.current = false; }, 250);
     }
 
@@ -109,10 +114,11 @@ function GameScene({
         vel[2] = -BALL_SPEED * (0.7 + Math.random() * 0.3);
         lastHitBy = 'player';
         hasBounced = false;
+        bounceCount = 0;
       }
     }
 
-    setBallState({ position: pos, velocity: vel, hasBounced, isServing: false, lastHitBy });
+    setBallState({ position: pos, velocity: vel, hasBounced, bounceCount, isServing: false, lastHitBy });
   });
 
   function endPoint(scorer: 'player' | 'ai', reason: string) {
@@ -147,7 +153,7 @@ export default function TennisGame() {
   });
   const [ballState, setBallState] = useState<BallState>({
     position: [0, 3, -HALF_L + 2], velocity: [0, 0, 0],
-    hasBounced: false, isServing: false, lastHitBy: null,
+    hasBounced: false, bounceCount: 0, isServing: false, lastHitBy: null,
   });
 
   const keysRef = useRef<Set<string>>(new Set());
@@ -170,7 +176,7 @@ export default function TennisGame() {
     setBallState({
       position: [serveFromX, 3, -HALF_L + 2],
       velocity: [(dx / dist) * speed * 0.4, 5, (dz / dist) * speed],
-      hasBounced: false, isServing: true, lastHitBy: 'ai',
+      hasBounced: false, bounceCount: 0, isServing: true, lastHitBy: 'ai',
     });
     setGameState(prev => ({ ...prev, gameStarted: true, pointOver: false, message: '', playerZ: PLAYER_Z }));
   }, []);
