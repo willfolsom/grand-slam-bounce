@@ -101,7 +101,7 @@ function GameScene({
     // Player swing
     if (gameState.isSwinging && lastHitBy !== 'player') {
       const pDistX = Math.abs(pos[0] - gameState.playerX);
-      const pDistZ = Math.abs(pos[2] - PLAYER_Z);
+      const pDistZ = Math.abs(pos[2] - (gameState.playerZ ?? PLAYER_Z));
       if (pDistX < HIT_RANGE_X && pDistZ < HIT_RANGE_Z && hasBounced && pos[1] < 2) {
         const tx = (Math.random() - 0.5) * (COURT_WIDTH - 2);
         vel[0] = (tx - pos[0]) * 0.5;
@@ -132,7 +132,7 @@ function GameScene({
       <directionalLight position={[-5, 15, -5]} intensity={0.3} />
       <Court theme={theme} />
       <Stadium theme={theme} />
-      <Player positionX={gameState.playerX} positionZ={PLAYER_Z} isSwinging={gameState.isSwinging} color="#1a5276" />
+      <Player positionX={gameState.playerX} positionZ={gameState.playerZ ?? PLAYER_Z} isSwinging={gameState.isSwinging} color="#1a5276" />
       <Player positionX={aiX.current} positionZ={AI_Z} isSwinging={aiSwinging.current} color="#922b21" isAI />
       <Ball position={ballState.position} />
     </>
@@ -142,7 +142,7 @@ function GameScene({
 export default function TennisGame() {
   const [courtType, setCourtType] = useState<CourtType>('clay');
   const [gameState, setGameState] = useState<GameState>({
-    playerScore: 0, aiScore: 0, playerX: 0, isSwinging: false,
+    playerScore: 0, aiScore: 0, playerX: 0, playerZ: PLAYER_Z, isSwinging: false,
     gameStarted: false, pointOver: false, message: 'Press SERVE to start!',
   });
   const [ballState, setBallState] = useState<BallState>({
@@ -153,14 +153,26 @@ export default function TennisGame() {
   const keysRef = useRef<Set<string>>(new Set());
   const swingTimeout = useRef<number | null>(null);
 
+  const serveCount = useRef(0);
   const serve = useCallback(() => {
-    const tx = (Math.random() - 0.5) * 4;
+    // Cross-court serve: alternate deuce/ad side
+    const isDeuceSide = serveCount.current % 2 === 0;
+    // AI serves from their baseline; cross-court means targeting opposite side
+    const serveFromX = isDeuceSide ? 1.5 : -1.5;
+    const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
+    // Target the service box (between net and service line on player's side)
+    const targetZ = HALF_L - 6.4 + Math.random() * 4; // land in service box
+    serveCount.current++;
+    const dx = targetX - serveFromX;
+    const dz = targetZ - (-HALF_L + 2);
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const speed = BALL_SPEED * 1.1;
     setBallState({
-      position: [0, 3, -HALF_L + 2],
-      velocity: [tx * 0.5, 4, BALL_SPEED],
+      position: [serveFromX, 3, -HALF_L + 2],
+      velocity: [(dx / dist) * speed * 0.4, 5, (dz / dist) * speed],
       hasBounced: false, isServing: true, lastHitBy: 'ai',
     });
-    setGameState(prev => ({ ...prev, gameStarted: true, pointOver: false, message: '' }));
+    setGameState(prev => ({ ...prev, gameStarted: true, pointOver: false, message: '', playerZ: PLAYER_Z }));
   }, []);
 
   const swing = useCallback(() => {
@@ -195,13 +207,17 @@ export default function TennisGame() {
       const dt = (now - last) / 1000;
       last = now;
       let dx = 0;
+      let dz = 0;
       const speed = 8;
       if (keysRef.current.has('a') || keysRef.current.has('arrowleft')) dx -= speed * dt;
       if (keysRef.current.has('d') || keysRef.current.has('arrowright')) dx += speed * dt;
-      if (dx !== 0) {
+      if (keysRef.current.has('w') || keysRef.current.has('arrowup')) dz -= speed * dt;
+      if (keysRef.current.has('s') || keysRef.current.has('arrowdown')) dz += speed * dt;
+      if (dx !== 0 || dz !== 0) {
         setGameState(prev => ({
           ...prev,
           playerX: Math.max(-HALF_W + 1, Math.min(HALF_W - 1, prev.playerX + dx)),
+          playerZ: Math.max(2, Math.min(HALF_L - 0.5, (prev.playerZ ?? PLAYER_Z) + dz)),
         }));
       }
       raf = requestAnimationFrame(loop);
