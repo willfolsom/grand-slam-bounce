@@ -36,6 +36,7 @@ export interface BallState {
   position: [number, number, number];
   velocity: [number, number, number];
   hasBounced: boolean;
+  bounceCount: number;
   isServing: boolean;
   lastHitBy: 'player' | 'ai' | null;
 }
