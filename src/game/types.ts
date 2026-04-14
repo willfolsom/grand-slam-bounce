@@ -44,6 +44,7 @@ export interface GameState {
   playerScore: number;
   aiScore: number;
   playerX: number;
+  playerZ: number;
   isSwinging: boolean;
   gameStarted: boolean;
   pointOver: boolean;
