@@ -50,14 +50,27 @@ function GameScene({
     if (pos[1] <= 0.12) {
       pos[1] = 0.12;
       if (vel[1] < -1) {
-        const inCourt = Math.abs(pos[0]) <= HALF_W && Math.abs(pos[2]) <= HALF_L;
-        if (!inCourt) {
-          endPoint(lastHitBy === 'player' ? 'ai' : 'player', 'Out!');
+        // Out if outside sidelines
+        if (Math.abs(pos[0]) > HALF_W) {
+          endPoint(lastHitBy === 'player' ? 'ai' : 'player', 'Wide!');
+          return;
+        }
+        // Out if beyond baseline
+        if (Math.abs(pos[2]) > HALF_L) {
+          endPoint(lastHitBy === 'player' ? 'ai' : 'player', 'Long!');
+          return;
+        }
+        // Fault: ball bounces on hitter's side (hasn't crossed net yet)
+        if (lastHitBy === 'player' && pos[2] > 0) {
+          endPoint('ai', 'Fault! Ball didn\'t clear!');
+          return;
+        }
+        if (lastHitBy === 'ai' && pos[2] < 0) {
+          endPoint('player', 'Fault! Ball didn\'t clear!');
           return;
         }
         bounceCount++;
         if (bounceCount >= 2) {
-          // Double bounce — whoever's side it's on loses
           if (pos[2] > 0) endPoint('ai', 'Double bounce!');
           else endPoint('player', 'Double bounce!');
           return;
@@ -67,13 +80,13 @@ function GameScene({
       }
     }
 
-    // Out of bounds
+    // Out of bounds (ball way off court - safety net)
     if (Math.abs(pos[0]) > HALF_W + 5) {
       endPoint(lastHitBy === 'player' ? 'ai' : 'player', 'Wide!');
       return;
     }
-    if (pos[2] > HALF_L + 3) { endPoint('ai', 'Long!'); return; }
-    if (pos[2] < -HALF_L - 3) { endPoint('player', 'Long!'); return; }
+    if (pos[2] > HALF_L + 5) { endPoint('ai', 'Long!'); return; }
+    if (pos[2] < -HALF_L - 5) { endPoint('player', 'Long!'); return; }
 
     // Net
     if (Math.abs(pos[2]) < 0.15 && pos[1] < NET_HEIGHT) {
@@ -108,10 +121,15 @@ function GameScene({
       const pDistX = Math.abs(pos[0] - gameState.playerX);
       const pDistZ = Math.abs(pos[2] - (gameState.playerZ ?? PLAYER_Z));
       if (pDistX < HIT_RANGE_X && pDistZ < HIT_RANGE_Z && hasBounced && pos[1] < 2) {
-        const tx = (Math.random() - 0.5) * (COURT_WIDTH - 2);
-        vel[0] = (tx - pos[0]) * 0.5;
-        vel[1] = 5 + Math.random() * 3;
-        vel[2] = -BALL_SPEED * (0.7 + Math.random() * 0.3);
+        const isFast = gameState.hitType === 'fast';
+        const speedMult = isFast ? 1.3 : 0.7;
+        const heightMult = isFast ? 0.7 : 1.4;
+        // Player movement influences direction
+        const movementInfluence = gameState.playerVelX * 1.5;
+        const tx = (Math.random() - 0.5) * (COURT_WIDTH - 2) + movementInfluence;
+        vel[0] = (tx - pos[0]) * 0.5 + movementInfluence * 0.5;
+        vel[1] = (5 + Math.random() * 3) * heightMult;
+        vel[2] = -BALL_SPEED * (0.7 + Math.random() * 0.3) * speedMult;
         lastHitBy = 'player';
         hasBounced = false;
         bounceCount = 0;
@@ -149,6 +167,7 @@ export default function TennisGame() {
   const [courtType, setCourtType] = useState<CourtType>('clay');
   const [gameState, setGameState] = useState<GameState>({
     playerScore: 0, aiScore: 0, playerX: 0, playerZ: PLAYER_Z, isSwinging: false,
+    hitType: 'slow', playerVelX: 0,
     gameStarted: false, pointOver: false, message: 'Press SERVE to start!',
   });
   const [ballState, setBallState] = useState<BallState>({
@@ -181,9 +200,9 @@ export default function TennisGame() {
     setGameState(prev => ({ ...prev, gameStarted: true, pointOver: false, message: '', playerZ: PLAYER_Z }));
   }, []);
 
-  const swing = useCallback(() => {
+  const swing = useCallback((type: 'fast' | 'slow' = 'slow') => {
     if (swingTimeout.current) clearTimeout(swingTimeout.current);
-    setGameState(prev => ({ ...prev, isSwinging: true }));
+    setGameState(prev => ({ ...prev, isSwinging: true, hitType: type }));
     swingTimeout.current = window.setTimeout(() => {
       setGameState(prev => ({ ...prev, isSwinging: false }));
     }, 300);
@@ -196,7 +215,12 @@ export default function TennisGame() {
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         if (gameState.pointOver || !gameState.gameStarted) serve();
-        else swing();
+        else swing('slow');
+      }
+      if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        if (gameState.pointOver || !gameState.gameStarted) serve();
+        else swing('fast');
       }
     };
     const up = (e: KeyboardEvent) => keysRef.current.delete(e.key.toLowerCase());
@@ -219,13 +243,12 @@ export default function TennisGame() {
       if (keysRef.current.has('d') || keysRef.current.has('arrowright')) dx += speed * dt;
       if (keysRef.current.has('w') || keysRef.current.has('arrowup')) dz -= speed * dt;
       if (keysRef.current.has('s') || keysRef.current.has('arrowdown')) dz += speed * dt;
-      if (dx !== 0 || dz !== 0) {
-        setGameState(prev => ({
-          ...prev,
-          playerX: Math.max(-HALF_W + 1, Math.min(HALF_W - 1, prev.playerX + dx)),
-          playerZ: Math.max(2, Math.min(HALF_L - 0.5, (prev.playerZ ?? PLAYER_Z) + dz)),
-        }));
-      }
+      setGameState(prev => ({
+        ...prev,
+        playerX: Math.max(-HALF_W + 1, Math.min(HALF_W - 1, prev.playerX + dx)),
+        playerZ: Math.max(2, Math.min(HALF_L - 0.5, (prev.playerZ ?? PLAYER_Z) + dz)),
+        playerVelX: dx / Math.max(dt, 0.001),
+      }));
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -319,9 +342,11 @@ export default function TennisGame() {
       {/* Keyboard hints */}
       <div className="absolute bottom-4 left-4 bg-card/80 backdrop-blur-sm border border-border rounded-lg px-4 py-2 pointer-events-none hidden md:block">
         <div className="text-xs text-muted-foreground">
-          <span className="font-bold text-foreground">WASD</span> or <span className="font-bold text-foreground">Arrows</span> Move
+          <span className="font-bold text-foreground">WASD</span> / <span className="font-bold text-foreground">Arrows</span> Move
           <span className="mx-2">•</span>
-          <span className="font-bold text-foreground">Space</span> Swing / Serve
+          <span className="font-bold text-foreground">Space</span> Lob
+          <span className="mx-2">•</span>
+          <span className="font-bold text-foreground">F</span> Fast Shot
         </div>
       </div>
 
