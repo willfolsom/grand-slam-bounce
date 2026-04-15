@@ -175,15 +175,25 @@ export default function TennisGame() {
   const keysRef = useRef<Set<string>>(new Set());
   const swingTimeout = useRef<number | null>(null);
 
+    const handlePointEnd = useCallback((scorer: 'player' | 'ai', reason: string) => {
+    const result = scorePoint(score, scorer);
+    setScore(result.newScore);
+    setGameState(prev => ({
+      ...prev,
+      pointOver: true,
+      message: `${reason} ${result.message || `Point to ${scorer === 'player' ? 'You' : 'CPU'}!`}`,
+    }));
+  }, [score]);
+
   const serveCount = useRef(0);
   const serve = useCallback(() => {
-    // Cross-court serve: alternate deuce/ad side
+    if (score.isMatchOver) {
+      setScore(initialScore());
+    }
     const isDeuceSide = serveCount.current % 2 === 0;
-    // AI serves from their baseline; cross-court means targeting opposite side
     const serveFromX = isDeuceSide ? 1.5 : -1.5;
     const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
-    // Target the service box (between net and service line on player's side)
-    const targetZ = HALF_L - 6.4 + Math.random() * 4; // land in service box
+    const targetZ = HALF_L - 6.4 + Math.random() * 4;
     serveCount.current++;
     const dx = targetX - serveFromX;
     const dz = targetZ - (-HALF_L + 2);
@@ -195,7 +205,7 @@ export default function TennisGame() {
       hasBounced: false, bounceCount: 0, isServing: true, lastHitBy: 'ai',
     });
     setGameState(prev => ({ ...prev, gameStarted: true, pointOver: false, message: '', playerZ: PLAYER_Z }));
-  }, []);
+  }, [score.isMatchOver]);
 
   const swing = useCallback((type: 'fast' | 'slow' = 'slow') => {
     if (swingTimeout.current) clearTimeout(swingTimeout.current);
