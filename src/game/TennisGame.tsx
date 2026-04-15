@@ -20,13 +20,14 @@ const HIT_RANGE_Z = 2.5;
 const NET_HEIGHT = 0.9;
 
 function GameScene({
-  courtType, gameState, setGameState, ballState, setBallState,
+  courtType, gameState, setGameState, ballState, setBallState, onPointEnd,
 }: {
   courtType: CourtType;
   gameState: GameState;
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   ballState: BallState;
   setBallState: React.Dispatch<React.SetStateAction<BallState>>;
+  onPointEnd: (scorer: 'player' | 'ai', reason: string) => void;
 }) {
   const theme = COURT_THEMES[courtType];
   const aiX = useRef(0);
