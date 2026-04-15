@@ -177,6 +177,10 @@ export default function TennisGame() {
 
     const handlePointEnd = useCallback((scorer: 'player' | 'ai', reason: string) => {
     const result = scorePoint(score, scorer);
+    // Reset serve count when a new game starts (game was won)
+    if (result.message.startsWith('Game') || result.message.startsWith('Set') || result.message.includes('match')) {
+      serveCount.current = 0;
+    }
     setScore(result.newScore);
     setGameState(prev => ({
       ...prev,
@@ -189,15 +193,18 @@ export default function TennisGame() {
   const serve = useCallback(() => {
     if (score.isMatchOver) {
       setScore(initialScore());
+      serveCount.current = 0;
     }
-    const isDeuceSide = serveCount.current % 2 === 0;
+    // First serve of each game is from AD side (right, +x), then Deuce (left, -x), alternating
+    const isAdSide = serveCount.current % 2 === 0;
     const isPlayerServing = score.server === 'player';
     
     if (isPlayerServing) {
-      // Player serves from their baseline toward AI's side
-      const serveFromX = isDeuceSide ? 1.5 : -1.5;
-      const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
-      const targetZ = -HALF_L + 6.4 - Math.random() * 4; // land in AI's service box
+      // Player serves from their current X position
+      const serveFromX = gameState.playerX;
+      // Cross-court: AD side (+x) targets left (-x), Deuce side (-x) targets right (+x)
+      const targetX = isAdSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
+      const targetZ = -HALF_L + 6.4 - Math.random() * 4;
       serveCount.current++;
       const dx = targetX - serveFromX;
       const dz = targetZ - (HALF_L - 2);
@@ -209,9 +216,9 @@ export default function TennisGame() {
         hasBounced: false, bounceCount: 0, isServing: true, lastHitBy: 'player',
       });
     } else {
-      // AI serves
-      const serveFromX = isDeuceSide ? 1.5 : -1.5;
-      const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
+      // AI serves from AD/Deuce side
+      const serveFromX = isAdSide ? 1.5 : -1.5;
+      const targetX = isAdSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
       const targetZ = HALF_L - 6.4 + Math.random() * 4;
       serveCount.current++;
       const dx = targetX - serveFromX;
@@ -225,7 +232,7 @@ export default function TennisGame() {
       });
     }
     setGameState(prev => ({ ...prev, gameStarted: true, pointOver: false, message: '', playerZ: PLAYER_Z }));
-  }, [score.isMatchOver, score.server]);
+  }, [score.isMatchOver, score.server, gameState.playerX]);
 
   const swing = useCallback((type: 'fast' | 'slow' = 'slow') => {
     if (swingTimeout.current) clearTimeout(swingTimeout.current);
