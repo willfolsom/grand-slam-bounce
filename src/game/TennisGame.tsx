@@ -191,21 +191,41 @@ export default function TennisGame() {
       setScore(initialScore());
     }
     const isDeuceSide = serveCount.current % 2 === 0;
-    const serveFromX = isDeuceSide ? 1.5 : -1.5;
-    const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
-    const targetZ = HALF_L - 6.4 + Math.random() * 4;
-    serveCount.current++;
-    const dx = targetX - serveFromX;
-    const dz = targetZ - (-HALF_L + 2);
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    const speed = BALL_SPEED * 1.1;
-    setBallState({
-      position: [serveFromX, 3, -HALF_L + 2],
-      velocity: [(dx / dist) * speed * 0.4, 5, (dz / dist) * speed],
-      hasBounced: false, bounceCount: 0, isServing: true, lastHitBy: 'ai',
-    });
+    const isPlayerServing = score.server === 'player';
+    
+    if (isPlayerServing) {
+      // Player serves from their baseline toward AI's side
+      const serveFromX = isDeuceSide ? 1.5 : -1.5;
+      const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
+      const targetZ = -HALF_L + 6.4 - Math.random() * 4; // land in AI's service box
+      serveCount.current++;
+      const dx = targetX - serveFromX;
+      const dz = targetZ - (HALF_L - 2);
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      const speed = BALL_SPEED * 1.1;
+      setBallState({
+        position: [serveFromX, 3, HALF_L - 2],
+        velocity: [(dx / dist) * speed * 0.4, 5, (dz / dist) * speed],
+        hasBounced: false, bounceCount: 0, isServing: true, lastHitBy: 'player',
+      });
+    } else {
+      // AI serves
+      const serveFromX = isDeuceSide ? 1.5 : -1.5;
+      const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
+      const targetZ = HALF_L - 6.4 + Math.random() * 4;
+      serveCount.current++;
+      const dx = targetX - serveFromX;
+      const dz = targetZ - (-HALF_L + 2);
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      const speed = BALL_SPEED * 1.1;
+      setBallState({
+        position: [serveFromX, 3, -HALF_L + 2],
+        velocity: [(dx / dist) * speed * 0.4, 5, (dz / dist) * speed],
+        hasBounced: false, bounceCount: 0, isServing: true, lastHitBy: 'ai',
+      });
+    }
     setGameState(prev => ({ ...prev, gameStarted: true, pointOver: false, message: '', playerZ: PLAYER_Z }));
-  }, [score.isMatchOver]);
+  }, [score.isMatchOver, score.server]);
 
   const swing = useCallback((type: 'fast' | 'slow' = 'slow') => {
     if (swingTimeout.current) clearTimeout(swingTimeout.current);
@@ -305,55 +325,57 @@ export default function TennisGame() {
         />
       </Canvas>
 
-      {/* Scoreboard */}
-      <div className="absolute top-0 left-0 right-0 pointer-events-none">
-        <div className="flex justify-center pt-4">
-          <div className="bg-card/90 backdrop-blur-sm border border-border rounded-lg px-4 py-2">
-            <table className="text-xs">
-              <thead>
-                <tr>
-                  <th className="text-left pr-4 text-muted-foreground font-normal"></th>
-                  {score.sets[0].map((_, i) => (
-                    <th key={i} className="px-2 text-muted-foreground font-normal">S{i + 1}</th>
-                  ))}
-                  <th className="px-3 text-muted-foreground font-normal border-l border-border">Game</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="pr-4 font-bold text-foreground text-sm">You</td>
-                  {score.sets[0].map((s, i) => (
-                    <td key={i} className="px-2 text-center text-foreground">{s}</td>
-                  ))}
-                  <td className="px-3 text-center text-2xl font-bold text-foreground border-l border-border">{formatPoints(score)[0]}</td>
-                </tr>
-                <tr>
-                  <td className="pr-4 font-bold text-foreground text-sm">CPU</td>
-                  {score.sets[1].map((s, i) => (
-                    <td key={i} className="px-2 text-center text-foreground">{s}</td>
-                  ))}
-                  <td className="px-3 text-center text-2xl font-bold text-foreground border-l border-border">{formatPoints(score)[1]}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="text-center mt-1 text-xs text-muted-foreground">
-              Games: {score.games[0]} - {score.games[1]}
-            </div>
-          </div>
+      {/* Scoreboard - top left */}
+      <div className="absolute top-4 left-4 pointer-events-none z-10">
+        <div className="bg-card/90 backdrop-blur-sm border border-border rounded-lg px-4 py-2">
+          <table className="text-xs">
+            <thead>
+              <tr>
+                <th className="text-left pr-4 text-muted-foreground font-normal"></th>
+                {score.sets[0].map((_, i) => (
+                  <th key={i} className="px-2 text-muted-foreground font-normal">S{i + 1}</th>
+                ))}
+                <th className="px-2 text-muted-foreground font-normal">G</th>
+                <th className="px-3 text-muted-foreground font-normal border-l border-border">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="pr-4 font-bold text-foreground text-sm">
+                  {score.server === 'player' && <span className="text-accent mr-1">●</span>}You
+                </td>
+                {score.sets[0].map((s, i) => (
+                  <td key={i} className="px-2 text-center text-foreground">{s}</td>
+                ))}
+                <td className="px-2 text-center text-foreground font-semibold">{score.games[0]}</td>
+                <td className="px-3 text-center text-xl font-bold text-foreground border-l border-border">{formatPoints(score)[0]}</td>
+              </tr>
+              <tr>
+                <td className="pr-4 font-bold text-foreground text-sm">
+                  {score.server === 'ai' && <span className="text-accent mr-1">●</span>}CPU
+                </td>
+                {score.sets[1].map((s, i) => (
+                  <td key={i} className="px-2 text-center text-foreground">{s}</td>
+                ))}
+                <td className="px-2 text-center text-foreground font-semibold">{score.games[1]}</td>
+                <td className="px-3 text-center text-xl font-bold text-foreground border-l border-border">{formatPoints(score)[1]}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div className="flex justify-center mt-2">
-          <div className="bg-card/80 backdrop-blur-sm border border-border rounded-full px-4 py-1">
+        <div className="mt-2">
+          <div className="bg-card/80 backdrop-blur-sm border border-border rounded-full px-4 py-1 inline-block">
             <span className="text-xs font-semibold tracking-wider text-accent uppercase">{theme.name}</span>
           </div>
         </div>
-        {gameState.message && (
-          <div className="flex justify-center mt-4">
-            <div className="bg-accent/90 text-accent-foreground px-6 py-2 rounded-lg font-bold text-lg animate-pulse">
-              {gameState.message}
-            </div>
-          </div>
-        )}
       </div>
+      {gameState.message && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
+          <div className="bg-accent/90 text-accent-foreground px-6 py-2 rounded-lg font-bold text-lg animate-pulse">
+            {gameState.message}
+          </div>
+        </div>
+      )}
 
       {/* Court selector */}
       <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
