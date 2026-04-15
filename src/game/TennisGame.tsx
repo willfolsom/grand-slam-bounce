@@ -177,6 +177,10 @@ export default function TennisGame() {
 
     const handlePointEnd = useCallback((scorer: 'player' | 'ai', reason: string) => {
     const result = scorePoint(score, scorer);
+    // Reset serve count when a new game starts (game was won)
+    if (result.message.startsWith('Game') || result.message.startsWith('Set') || result.message.includes('match')) {
+      serveCount.current = 0;
+    }
     setScore(result.newScore);
     setGameState(prev => ({
       ...prev,
