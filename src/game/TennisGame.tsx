@@ -142,13 +142,7 @@ function GameScene({
   });
 
   function endPoint(scorer: 'player' | 'ai', reason: string) {
-    setGameState(prev => ({
-      ...prev,
-      playerScore: scorer === 'player' ? prev.playerScore + 1 : prev.playerScore,
-      aiScore: scorer === 'ai' ? prev.aiScore + 1 : prev.aiScore,
-      pointOver: true,
-      message: `${reason} Point to ${scorer === 'player' ? 'You' : 'Opponent'}!`,
-    }));
+    onPointEnd(scorer, reason);
   }
 
   return (
