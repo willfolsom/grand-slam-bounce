@@ -191,21 +191,41 @@ export default function TennisGame() {
       setScore(initialScore());
     }
     const isDeuceSide = serveCount.current % 2 === 0;
-    const serveFromX = isDeuceSide ? 1.5 : -1.5;
-    const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
-    const targetZ = HALF_L - 6.4 + Math.random() * 4;
-    serveCount.current++;
-    const dx = targetX - serveFromX;
-    const dz = targetZ - (-HALF_L + 2);
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    const speed = BALL_SPEED * 1.1;
-    setBallState({
-      position: [serveFromX, 3, -HALF_L + 2],
-      velocity: [(dx / dist) * speed * 0.4, 5, (dz / dist) * speed],
-      hasBounced: false, bounceCount: 0, isServing: true, lastHitBy: 'ai',
-    });
+    const isPlayerServing = score.server === 'player';
+    
+    if (isPlayerServing) {
+      // Player serves from their baseline toward AI's side
+      const serveFromX = isDeuceSide ? 1.5 : -1.5;
+      const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
+      const targetZ = -HALF_L + 6.4 - Math.random() * 4; // land in AI's service box
+      serveCount.current++;
+      const dx = targetX - serveFromX;
+      const dz = targetZ - (HALF_L - 2);
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      const speed = BALL_SPEED * 1.1;
+      setBallState({
+        position: [serveFromX, 3, HALF_L - 2],
+        velocity: [(dx / dist) * speed * 0.4, 5, (dz / dist) * speed],
+        hasBounced: false, bounceCount: 0, isServing: true, lastHitBy: 'player',
+      });
+    } else {
+      // AI serves
+      const serveFromX = isDeuceSide ? 1.5 : -1.5;
+      const targetX = isDeuceSide ? -2 - Math.random() * 1.5 : 2 + Math.random() * 1.5;
+      const targetZ = HALF_L - 6.4 + Math.random() * 4;
+      serveCount.current++;
+      const dx = targetX - serveFromX;
+      const dz = targetZ - (-HALF_L + 2);
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      const speed = BALL_SPEED * 1.1;
+      setBallState({
+        position: [serveFromX, 3, -HALF_L + 2],
+        velocity: [(dx / dist) * speed * 0.4, 5, (dz / dist) * speed],
+        hasBounced: false, bounceCount: 0, isServing: true, lastHitBy: 'ai',
+      });
+    }
     setGameState(prev => ({ ...prev, gameStarted: true, pointOver: false, message: '', playerZ: PLAYER_Z }));
-  }, [score.isMatchOver]);
+  }, [score.isMatchOver, score.server]);
 
   const swing = useCallback((type: 'fast' | 'slow' = 'slow') => {
     if (swingTimeout.current) clearTimeout(swingTimeout.current);
