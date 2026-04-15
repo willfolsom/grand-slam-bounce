@@ -301,6 +301,7 @@ export default function TennisGame() {
           setGameState={setGameState}
           ballState={ballState}
           setBallState={setBallState}
+          onPointEnd={handlePointEnd}
         />
       </Canvas>
 
