@@ -42,8 +42,6 @@ export interface BallState {
 }
 
 export interface GameState {
-  playerScore: number;
-  aiScore: number;
   playerX: number;
   playerZ: number;
   isSwinging: boolean;
