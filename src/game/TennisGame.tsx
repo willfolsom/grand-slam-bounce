@@ -5,6 +5,7 @@ import { Stadium } from './Stadium';
 import { Player } from './Player';
 import { Ball } from './Ball';
 import { CourtType, COURT_THEMES, BallState, GameState } from './types';
+import { TennisScore, initialScore, formatPoints, scorePoint, isDeuce } from './scoring';
 
 const COURT_LENGTH = 24;
 const COURT_WIDTH = 10;
