@@ -161,8 +161,9 @@ function GameScene({
 
 export default function TennisGame() {
   const [courtType, setCourtType] = useState<CourtType>('clay');
+  const [score, setScore] = useState<TennisScore>(initialScore());
   const [gameState, setGameState] = useState<GameState>({
-    playerScore: 0, aiScore: 0, playerX: 0, playerZ: PLAYER_Z, isSwinging: false,
+    playerX: 0, playerZ: PLAYER_Z, isSwinging: false,
     hitType: 'slow', playerVelX: 0,
     gameStarted: false, pointOver: false, message: 'Press SERVE to start!',
   });
